@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SlashPrompt</title>
+    <link rel="stylesheet" href="popup.css" />
+  </head>
+  <body>
+    <div class="app">
+      <header class="header">
+        <div class="brand">
+          <span class="logo">✨</span>
+          <div>
+            <h1>SlashPrompt</h1>
+            <p class="subtitle">Local AI · Zero Tokens</p>
+          </div>
+        </div>
+        <label class="switch" title="Enable inline // trigger">
+          <input type="checkbox" id="toggle-enabled" checked />
+          <span class="slider"></span>
+        </label>
+      </header>
+
+      <nav class="tabs" role="tablist">
+        <button class="tab active" data-tab="playground" role="tab">Enhance</button>
+        <button class="tab" data-tab="history" role="tab">History</button>
+        <button class="tab" data-tab="settings" role="tab">AI & Settings</button>
+      </nav>
+
+      <main class="content">
+        <!-- Playground Tab -->
+        <section id="tab-playground" class="panel active">
+          <textarea
+            id="pg-input"
+            rows="3"
+            placeholder="Type a rough prompt (or use // in any website textarea)..."
+          ></textarea>
+
+          <div class="controls-row">
+            <select id="pg-mode" aria-label="AI Mode">
+              <option value="enhance">Enhance (Prompt API)</option>
+              <option value="rewrite-concise">Concise (Rewriter)</option>
+              <option value="rewrite-formal">Formal (Rewriter)</option>
+              <option value="expand">Expand (Writer)</option>
+              <option value="proofread">Proofread (Proofreader)</option>
+              <option value="summarize">Summarize (Summarizer)</option>
+            </select>
+            <select id="pg-style" aria-label="Style">
+              <option value="structured">Structured</option>
+              <option value="concise">Concise</option>
+              <option value="coding">Coding</option>
+              <option value="creative">Creative</option>
+            </select>
+            <button id="pg-run" class="btn-primary">Enhance</button>
+          </div>
+
+          <div id="pg-output-wrap" class="output-wrap hidden">
+            <div class="output-header">
+              <span id="pg-status" class="status-text">Ready</span>
+              <button id="pg-copy" class="btn-ghost">Copy</button>
+            </div>
+            <pre id="pg-output" class="output"></pre>
+          </div>
+        </section>
+
+        <!-- History Tab -->
+        <section id="tab-history" class="panel">
+          <div class="history-top">
+            <span class="muted">Saved locally on your device</span>
+            <button id="history-clear" class="btn-ghost">Clear</button>
+          </div>
+          <div id="history-list" class="history-list"></div>
+        </section>
+
+        <!-- Settings & AI Status Tab -->
+        <section id="tab-settings" class="panel">
+          <div class="section-title">Chrome Built-in AI Status</div>
+          <div id="ai-status-grid" class="status-grid"></div>
+
+          <details class="setup-guide">
+            <summary>How to enable Chrome Built-in AI (Free)</summary>
+            <ol>
+              <li>Use Chrome 138+ on desktop with ≥22 GB free space.</li>
+              <li>Open <code>chrome://flags</code> and enable:
+                <ul>
+                  <li><code>#optimization-guide-on-device-model</code> → Enabled BypassPerfRequirement</li>
+                  <li><code>#prompt-api-for-gemini-nano</code> → Enabled</li>
+                  <li><code>#rewriter-api-for-gemini-nano</code>, <code>#writer-api-for-gemini-nano</code>, <code>#summarizer-api-for-gemini-nano</code></li>
+                </ul>
+              </li>
+              <li>Relaunch Chrome and check <code>chrome://on-device-internals</code>.</li>
+            </ol>
+          </details>
+
+          <div class="section-title" style="margin-top: 14px;">Preferences</div>
+          <div class="setting-row">
+            <label for="setting-prefix">Trigger prefix</label>
+            <input id="setting-prefix" type="text" maxlength="6" value="//" />
+          </div>
+          <div class="setting-row">
+            <label for="setting-style">Default style</label>
+            <select id="setting-style">
+              <option value="structured">Structured</option>
+              <option value="concise">Concise</option>
+              <option value="coding">Coding</option>
+              <option value="creative">Creative</option>
+            </select>
+          </div>
+          <div class="setting-row">
+            <div>
+              <label for="setting-demo">Offline Demo Fallback</label>
+              <div class="muted">Use local template if Gemini Nano is unavailable</div>
+            </div>
+            <input id="setting-demo" type="checkbox" />
+          </div>
+        </section>
+      </main>
+    </div>
+    <script type="module" src="popup.js"></script>
+  </body>
+</html>
