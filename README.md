@@ -1,24 +1,65 @@
-# SlashPrompt — Local AI Prompt Enhancer for Chrome
+<div align="center">
+  <img src="assets/logo.svg" alt="SlashPrompt Logo" width="84" height="84" />
+  <h1>SlashPrompt</h1>
+  <p>
+    <strong>Enhance prompts inline with <code>//</code> using Chrome's Built-in AI (Gemini Nano)</strong><br />
+    100% on-device · Zero API keys · Zero token costs
+  </p>
 
-> Type `//` followed by any rough idea in any web text area to enhance, rewrite, expand, proofread, or summarize your prompt **100% locally** using Chrome's Built-in AI (**Gemini Nano**) — zero API keys, zero cloud calls, zero token costs.
+  <p>
+    <img src="https://img.shields.io/badge/Manifest-V3-18181b?style=flat-square" alt="Manifest V3" />
+    <img src="https://img.shields.io/badge/Chrome_AI-Gemini_Nano-10b981?style=flat-square" alt="Chrome Built-in AI" />
+    <img src="https://img.shields.io/badge/TypeScript-Strict-3178c6?style=flat-square" alt="TypeScript" />
+    <img src="https://img.shields.io/badge/Shadow_DOM-Isolated_UI-71717a?style=flat-square" alt="Shadow DOM" />
+    <img src="https://img.shields.io/badge/License-MIT-blue?style=flat-square" alt="MIT License" />
+  </p>
+</div>
 
 ---
 
-## Features
+## Why SlashPrompt?
 
-- **Inline `//` Trigger Anywhere:** Works across standard `<textarea>`, `<input>`, and rich `contenteditable` editors (ChatGPT, Claude, Gemini, Notion, GitHub, Gmail, Linear, Slack, etc.).
-- **URL & Comment Safe:** Automatically ignores `https://` / `http://` URLs and `///` comments so normal typing is never interrupted.
-- **Minimal Shadow DOM Floating UI:** CSS-isolated floating pill and streaming preview card that adapts automatically to light and dark mode without clashing with host page styles.
-- **Powered by 5 Chrome Built-in AI APIs:**
-  - **Prompt API (`LanguageModel`):** Full prompt engineering enhancement with selectable styles (`Structured`, `Concise`, `Coding`, `Creative`).
-  - **Rewriter API (`Rewriter`):** One-click `Concise` / `Shorter` and `Formal` tone adjustments.
-  - **Writer API (`Writer`):** `Expand` mode to turn brief notes or bullet points into complete prompts.
-  - **Summarizer API (`Summarizer`):** `Summarize` mode to condense verbose prompts into crisp key points.
-  - **Proofreader API (`Proofreader`):** `Proofread` mode to fix grammar and clarity without altering intent.
-  - *(Specialized modes automatically fall back to `LanguageModel` if only the Prompt API is enabled.)*
-- **Real-Time Streaming & One-Click Replace:** Streams tokens live over a Manifest V3 `chrome.runtime.Port` with abort support, quick-refine chips (`Shorter`, `Formal`, `Coding`, `Retry`), clipboard copy, and in-place replacement that preserves React/ProseMirror/Lexical editor state.
-- **Toolbar Popup & Local History:** Includes an **Enhance Playground**, **Local History** (last 30 prompts with starring, stored strictly in `chrome.storage.local`), live **Chrome AI Status** badges, custom trigger prefix support, and an **Offline Demo Fallback** toggle for testing without Gemini Nano weights.
-- **Right-Click Context Menu:** Highlight any text in an editable field and select **Enhance prompt with SlashPrompt**.
+Most prompt-enhancer extensions send your text to external cloud APIs, require paid API keys, or inject clunky modals. **SlashPrompt** runs **entirely inside Chrome** via the Built-in AI APIs (`LanguageModel`, `Rewriter`, `Writer`, `Summarizer`, `Proofreader`) and renders a clean, CSS-isolated **Shadow DOM** floating pill right next to your cursor.
+
+- **Works everywhere you type:** `<textarea>`, `<input>`, and rich `contenteditable` editors (ChatGPT, Claude, Gemini, Notion, GitHub, Gmail, Linear, Slack).
+- **URL & comment safe:** Automatically ignores `https://`, `http://`, and `///` so normal typing is never interrupted.
+- **Instant streaming & 1-click replace:** Streams tokens over a Manifest V3 `chrome.runtime.Port` and replaces your `// ...` text cleanly without breaking React, ProseMirror, or Lexical editor state.
+- **Light & dark adaptive:** Automatically matches your system theme.
+
+---
+
+## Features & Examples
+
+Type `//` followed by a rough thought in any text box, pick a mode or style, and press `Ctrl+Enter` (`Cmd+Enter` on Mac) or click **Enhance**.
+
+### 1. Enhancement Styles (`LanguageModel` / Prompt API)
+
+| Style | You type | Enhanced output |
+| :--- | :--- | :--- |
+| **Structured** *(default)* | `// plan a 3-day trip to tokyo for foodies` | *Role: Travel concierge. Task: Create a 3-day Tokyo itinerary focused on local food. Constraints: Group by neighborhood, include breakfast/lunch/dinner/late-night spots, and note reservation tips. Output: Day-by-day schedule.* |
+| **Coding** | `// python script to dedupe csv by email` | *Act as a senior Python engineer. Write a clean script using `csv` or `pandas` to deduplicate a CSV by the `email` column (case-insensitive, trimmed). Handle missing headers, malformed rows, and include CLI usage.* |
+| **Concise** | `// help me write a polite decline for a meeting` | *Draft a brief, polite 2–3 sentence email declining a meeting invitation while proposing an async alternative.* |
+| **Creative** | `// sci-fi opening about a quiet mars outpost` | *Write an atmospheric 200-word sci-fi opening set in a solitary Mars research outpost. Focus on sensory details—dust, radio static, low-gravity stillness—and end on an unexpected signal.* |
+
+### 2. Built-in AI Modes
+
+| Mode | Chrome API Used | Best For | Example |
+| :--- | :--- | :--- | :--- |
+| **Enhance** | `LanguageModel` | Turning rough ideas into high-signal prompts | `// sql query for monthly churn` → structured prompt with schema/edge-case asks |
+| **Concise** | `Rewriter` (`shorter`) | Trimming wordy prompts | `// I was wondering if you could maybe...` → crisp direct instruction |
+| **Formal** | `Rewriter` (`more-formal`) | Professional / client-facing tone | `// tell client deadline moved to friday` → polished professional message |
+| **Expand** | `Writer` | Turning short bullet points into full drafts | `// onboarding email: welcome, setup link, slack` → complete structured draft |
+| **Proofread** | `Proofreader` | Fixing grammar & clarity without changing voice | `// wrtie a summry of teh Q3 report` → `Write a summary of the Q3 report.` |
+| **Summarize** | `Summarizer` (`key-points`) | Condensing long pasted context into key points | `// <long 400-word spec>` → crisp bulleted requirements |
+
+> **Automatic Fallback:** If only the **Prompt API** (`LanguageModel`) is enabled in your Chrome build, `Concise`, `Formal`, `Expand`, `Proofread`, and `Summarize` automatically route through `LanguageModel` with task-specific instructions.
+
+### 3. Toolbar Popup & Local History
+
+Click the **SlashPrompt** extension icon anytime to access:
+- **Enhance Playground:** Test and refine prompts without leaving your current tab.
+- **Local History:** Last 30 enhanced prompts stored strictly in `chrome.storage.local` with **★ starring** and 1-click copy.
+- **AI & Settings:** Live availability pills (`available`, `downloadable`, `unavailable`) for all 5 Chrome Built-in AI APIs, custom trigger prefix (default `//`), default style, and **Offline Demo Fallback**.
 
 ---
 
@@ -32,23 +73,39 @@
 
 ---
 
-## Chrome Built-in AI Setup (Free, On-Device)
+## What Happens If Chrome Built-in AI Models Aren't Installed?
 
-SlashPrompt runs Gemini Nano directly inside Chrome. To enable Chrome's Built-in AI APIs:
+SlashPrompt handles missing or un-downloaded models gracefully:
+
+1. **Model not yet downloaded (`downloadable`):**
+   On first use, Chrome begins downloading Gemini Nano automatically. SlashPrompt displays a live progress indicator (`Preparing on-device AI model (X%)...`) inside the floating card and popup.
+2. **APIs disabled or unsupported (`unavailable`):**
+   By default, SlashPrompt does **not** fake AI output—it shows a clear notice (`Chrome Built-in AI (Gemini Nano) is not enabled or available in this browser`) and links you to the **AI & Settings** setup checklist.
+3. **Offline Demo Fallback (optional):**
+   If you want to preview the UI/workflow before enabling Chrome flags or downloading Gemini Nano, toggle **Offline Demo Fallback** in **AI & Settings** to use local template-based streaming.
+
+---
+
+## Setup & Installation
+
+### 1. Enable Chrome Built-in AI
+
+<details>
+<summary>Click for Chrome flags & hardware requirements</summary>
 
 1. Use **Google Chrome 138+** on desktop (Windows 10/11, macOS 13+, Linux, or Chromebook Plus) with at least **22 GB** of free disk space.
 2. Open `chrome://flags` and enable:
    - `#optimization-guide-on-device-model` → **Enabled BypassPerfRequirement**
    - `#prompt-api-for-gemini-nano` → **Enabled**
    - Optional specialized APIs: `#rewriter-api-for-gemini-nano`, `#writer-api-for-gemini-nano`, `#summarizer-api-for-gemini-nano`, `#proofreader-api-for-gemini-nano`
-3. Relaunch Chrome and verify model status at `chrome://on-device-internals` or in the **SlashPrompt → AI & Settings** tab.
+3. Relaunch Chrome and check `chrome://on-device-internals` (or open **SlashPrompt → AI & Settings**).
 
----
+</details>
 
-## Installation (Load Unpacked)
+### 2. Build & Load Unpacked
 
 ```bash
-git clone https://github.com/<your-username>/slashprompt-chrome-local-ai.git
+git clone https://github.com/amafjarkasi/slashprompt-chrome-local-ai.git
 cd slashprompt-chrome-local-ai
 npm install
 npm run build
@@ -56,27 +113,30 @@ npm run build
 
 1. Open `chrome://extensions` in Chrome.
 2. Enable **Developer mode** (top-right).
-3. Click **Load unpacked** and select the generated `dist/` folder.
+3. Click **Load unpacked** and select the `dist/` directory.
 
 ---
 
-## Architecture
+## Project Structure
 
 ```text
-src/
-├── ai/chromeAi.ts          # Unified wrapper for LanguageModel, Rewriter, Writer, Summarizer, Proofreader
-├── background/index.ts     # MV3 service worker, context menu, and streaming Port handler
-├── content/
-│   ├── index.ts            # Trigger listener, keyboard shortcuts, and Port client
-│   ├── domTarget.ts        # Caret/range extraction & React/contenteditable-safe replacement
-│   └── overlay.ts          # Shadow DOM floating pill & streaming preview card
-├── popup/
-│   ├── popup.ts            # Playground, local history, AI capability status, and settings
-│   └── popup.css           # Minimal light/dark adaptive popup styles
-└── shared/
-    ├── trigger.ts          # Pure // trigger parser with URL & /// guards
-    ├── storage.ts          # Typed chrome.storage.local wrapper
-    └── types.ts            # Shared message, mode, style, and settings types
+├── assets/logo.svg            # Minimal repository logo
+├── public/
+│   ├── manifest.json          # Manifest V3 config (storage, contextMenus, activeTab)
+│   └── popup.html             # Toolbar popup markup
+├── scripts/build.mjs          # Vite bundler + PNG icon generator → dist/
+├── src/
+│   ├── ai/chromeAi.ts         # Unified wrapper for all 5 Chrome Built-in AI APIs
+│   ├── background/index.ts    # MV3 service worker, context menu, streaming Port
+│   ├── content/
+│   │   ├── index.ts           # // trigger listener, shortcuts, Port client
+│   │   ├── domTarget.ts       # Caret/range detection & React/contenteditable replacement
+│   │   └── overlay.ts         # Shadow DOM floating pill & streaming card UI
+│   ├── popup/                 # Popup UI & styles
+│   └── shared/                # Trigger parser, storage helper, shared types
+└── tests/
+    ├── trigger.test.ts        # Vitest unit tests
+    └── e2e.mjs                # Playwright Chromium MV3 end-to-end tests
 ```
 
 ---
@@ -85,10 +145,10 @@ src/
 
 | Command | Description |
 | :--- | :--- |
-| `npm run typecheck` | Run TypeScript typechecking (`tsc --noEmit`) |
-| `npm run build` | Bundle MV3 `content.js`, `background.js`, `popup.js`, and assets into `dist/` |
+| `npm run typecheck` | TypeScript check (`tsc --noEmit`) |
+| `npm run build` | Bundle extension into `dist/` |
 | `npm test` | Run Vitest unit tests (`tests/trigger.test.ts`) |
-| `npm run test:e2e` | Run Playwright Chromium end-to-end tests loading the unpacked `dist/` extension |
+| `npm run test:e2e` | Run Playwright Chromium E2E tests against `dist/` |
 
 ---
 
