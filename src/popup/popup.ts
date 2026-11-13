@@ -77,6 +77,13 @@ settingDemo.addEventListener('change', () => {
 // Playground
 let activePort: chrome.runtime.Port | null = null;
 
+pgInput.addEventListener('keydown', (e) => {
+  if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+    e.preventDefault();
+    pgRun.click();
+  }
+});
+
 pgRun.addEventListener('click', () => {
   const prompt = pgInput.value.trim();
   if (!prompt) return;

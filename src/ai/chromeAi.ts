@@ -70,6 +70,12 @@ const STYLE_INSTRUCTIONS: Record<EnhanceStyle, string> = {
     'Make the prompt crisp, direct, and high-signal in as few words as possible while removing ambiguity.',
   coding:
     'Optimize for software engineering: specify language/stack assumptions, edge cases, constraints, error handling, and expected code/test output.',
+  'step-by-step':
+    'Instruct the AI to state key assumptions, reason step-by-step (Chain-of-Thought), and verify the final answer before concluding.',
+  'few-shot':
+    'Include 1-2 concise Input -> Output examples inside the prompt to anchor the exact expected format and tone.',
+  clarify:
+    'Instruct the AI to ask 2-3 targeted clarifying questions about missing context or constraints before producing the final response.',
   creative:
     'Enhance with vivid direction, tone, audience, style constraints, and creative framing while preserving the core intent.',
 };
@@ -251,6 +257,8 @@ export async function runLocalAiTask(
       const session = await lm.create({
         initialPrompts: [{ role: 'system', content: buildSystemPrompt(style) }],
         systemPrompt: buildSystemPrompt(style),
+        expectedInputs: [{ type: 'text', languages: ['en'] }],
+        expectedOutputs: [{ type: 'text', languages: ['en'] }],
         monitor,
       });
 
@@ -312,6 +320,12 @@ async function runDemoEnhancement(
     result = `Core goal: ${clean}\nKey constraints: Keep it brief and actionable.`;
   } else if (style === 'coding') {
     result = `Act as a senior software engineer.\n\nTask: ${clean}\n\nRequirements:\n- Provide clean, idiomatic, production-ready code.\n- Handle edge cases and errors explicitly.\n- Include a brief usage example.`;
+  } else if (style === 'step-by-step') {
+    result = `Task: ${clean}\n\nInstructions:\n1. State any key assumptions first.\n2. Work through the problem step-by-step.\n3. Verify edge cases before giving the final answer.`;
+  } else if (style === 'few-shot') {
+    result = `Task: ${clean}\n\nFollow the exact format shown below:\nExample Input: <sample input>\nExample Output: <concise expected output>\n\nNow process the actual input with the same structure.`;
+  } else if (style === 'clarify') {
+    result = `Goal: ${clean}\n\nBefore generating the full solution, ask 2–3 targeted clarifying questions about scope, constraints, and audience. Wait for my answers first.`;
   } else if (style === 'concise') {
     result = `Task: ${clean}\nConstraints: Be direct, accurate, and avoid filler.`;
   } else {

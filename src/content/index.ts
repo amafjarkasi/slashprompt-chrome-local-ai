@@ -35,6 +35,7 @@ const overlay = new FloatingOverlay(
 async function init() {
   try {
     settings = await getSettings();
+    overlay.setDefaultStyle(settings.defaultStyle);
   } catch {
     // Fallback to defaults if storage isn't ready
   }
@@ -42,6 +43,7 @@ async function init() {
   chrome.storage.onChanged.addListener((changes, area) => {
     if (area === 'local' && changes.slashprompt_settings?.newValue) {
       settings = { ...DEFAULT_SETTINGS, ...changes.slashprompt_settings.newValue };
+      overlay.setDefaultStyle(settings.defaultStyle);
       if (!settings.enabled) {
         dismiss();
       }
@@ -144,6 +146,7 @@ function evaluateTarget(target: EventTarget | null) {
 document.addEventListener(
   'input',
   (e) => {
+    if (e.composedPath().includes(overlay.getHost())) return;
     evaluateTarget(e.target);
   },
   true
@@ -158,6 +161,7 @@ document.addEventListener(
       dismiss();
       return;
     }
+    if (e.composedPath().includes(overlay.getHost())) return;
     if (!overlay.isCardOpen()) {
       evaluateTarget(e.target);
     }
@@ -185,13 +189,19 @@ document.addEventListener(
       if (isTriggerShortcut) {
         e.preventDefault();
         e.stopPropagation();
-        startEnhancement('enhance', settings.defaultStyle);
+        startEnhancement(overlay.getCurrentMode(), overlay.getCurrentStyle());
         return;
       }
     }
 
-    // Replace with Enter when card is ready
+    // Replace with Enter (or Ctrl+Enter if editing inside the preview textarea) when card is ready
     if (overlay.isCardOpen() && e.key === 'Enter' && !e.shiftKey) {
+      const editingPreview = e
+        .composedPath()
+        .some((n) => n instanceof HTMLTextAreaElement && n.classList.contains('sp-preview'));
+      if (editingPreview && !(e.ctrlKey || e.metaKey)) {
+        return;
+      }
       const result = overlay.getResultText();
       if (result) {
         e.preventDefault();
@@ -199,6 +209,18 @@ document.addEventListener(
         applyReplacement(result);
       }
     }
+  },
+  true
+);
+
+document.addEventListener(
+  'mousedown',
+  (e) => {
+    if (!overlay.isVisible()) return;
+    const path = e.composedPath();
+    if (path.includes(overlay.getHost())) return;
+    if (activeTarget && path.includes(activeTarget)) return;
+    dismiss();
   },
   true
 );

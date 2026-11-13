@@ -1,4 +1,4 @@
-import type { AiMode, EnhanceStyle } from '../shared/types.js';
+import { ENHANCE_STYLES, type AiMode, type EnhanceStyle } from '../shared/types.js';
 
 export interface OverlayCallbacks {
   onEnhance: (mode: AiMode, style: EnhanceStyle) => void;
@@ -179,14 +179,27 @@ const STYLES = `
 }
 
 .sp-preview {
+  width: 100%;
+  font-family: inherit;
   font-size: 13px;
   line-height: 1.5;
   white-space: pre-wrap;
   word-break: break-word;
+  height: 140px;
   max-height: 210px;
+  resize: vertical;
   overflow-y: auto;
   color: var(--text);
-  min-height: 44px;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  padding: 4px 6px;
+  outline: none;
+}
+
+.sp-preview:not([readonly]):focus {
+  border-color: var(--border);
+  background: var(--bg-muted);
 }
 
 .sp-status {
@@ -275,6 +288,8 @@ export class FloatingOverlay {
   private viewState: 'hidden' | 'pill' | 'card' = 'hidden';
   private resultText = '';
   private isStreaming = false;
+  private previewEl: HTMLTextAreaElement | null = null;
+  private statusLabelEl: HTMLSpanElement | null = null;
 
   constructor(callbacks: OverlayCallbacks, defaultStyle: EnhanceStyle) {
     this.callbacks = callbacks;
@@ -294,6 +309,22 @@ export class FloatingOverlay {
     this.shadow.appendChild(this.root);
   }
 
+  public getHost(): HTMLDivElement {
+    return this.host;
+  }
+
+  public setDefaultStyle(style: EnhanceStyle): void {
+    this.currentStyle = style;
+  }
+
+  public getCurrentMode(): AiMode {
+    return this.currentMode;
+  }
+
+  public getCurrentStyle(): EnhanceStyle {
+    return this.currentStyle;
+  }
+
   public isVisible(): boolean {
     return this.viewState !== 'hidden';
   }
@@ -303,14 +334,14 @@ export class FloatingOverlay {
   }
 
   public getResultText(): string {
-    return this.resultText;
+    return this.previewEl ? this.previewEl.value.trim() : this.resultText;
   }
 
   public showPill(rect: DOMRect): void {
     this.viewState = 'pill';
     this.mount();
     this.renderPill();
-    this.positionNear(rect, 310, 40);
+    this.positionNear(rect, 390, 42);
   }
 
   public showCardLoading(rect: DOMRect, mode: AiMode, style: EnhanceStyle): void {
@@ -321,20 +352,25 @@ export class FloatingOverlay {
     this.resultText = '';
     this.mount();
     this.renderCard({ statusText: 'Enhancing locally with Gemini Nano...' });
-    this.positionNear(rect, 380, 260);
+    this.positionNear(rect, 390, 270);
   }
 
   public updateDownloadProgress(progress: number): void {
     if (this.viewState !== 'card') return;
-    this.renderCard({
-      statusText: `Preparing on-device AI model (${progress}%)...`,
-    });
+    if (this.statusLabelEl) {
+      this.statusLabelEl.textContent = `Preparing on-device AI model (${progress}%)...`;
+    }
   }
 
   public updateStream(fullText: string): void {
     if (this.viewState !== 'card') return;
     this.resultText = fullText;
-    this.renderCard({ statusText: 'Generating locally...' });
+    if (this.previewEl) {
+      this.previewEl.value = fullText;
+      this.previewEl.scrollTop = this.previewEl.scrollHeight;
+    } else {
+      this.renderCard({ statusText: 'Generating locally...' });
+    }
   }
 
   public finishStream(fullText: string, usedDemoFallback = false): void {
@@ -356,6 +392,8 @@ export class FloatingOverlay {
     this.viewState = 'hidden';
     this.isStreaming = false;
     this.resultText = '';
+    this.previewEl = null;
+    this.statusLabelEl = null;
     this.root.innerHTML = '';
     this.host.remove();
   }
@@ -416,6 +454,22 @@ export class FloatingOverlay {
     });
     modeSelect.addEventListener('mousedown', (e) => e.stopPropagation());
 
+    const styleSelect = document.createElement('select');
+    styleSelect.className = 'sp-select';
+    styleSelect.setAttribute('aria-label', 'Prompt Style');
+    styleSelect.setAttribute('data-testid', 'slashprompt-style-select');
+    for (const s of ENHANCE_STYLES) {
+      const opt = document.createElement('option');
+      opt.value = s.value;
+      opt.textContent = s.label;
+      if (s.value === this.currentStyle) opt.selected = true;
+      styleSelect.appendChild(opt);
+    }
+    styleSelect.addEventListener('change', () => {
+      this.currentStyle = styleSelect.value as EnhanceStyle;
+    });
+    styleSelect.addEventListener('mousedown', (e) => e.stopPropagation());
+
     const enhanceBtn = document.createElement('button');
     enhanceBtn.type = 'button';
     enhanceBtn.className = 'sp-btn-primary';
@@ -438,7 +492,7 @@ export class FloatingOverlay {
       this.callbacks.onDismiss();
     });
 
-    pill.append(label, modeSelect, enhanceBtn, closeBtn);
+    pill.append(label, modeSelect, styleSelect, enhanceBtn, closeBtn);
     this.root.appendChild(pill);
   }
 
@@ -449,6 +503,8 @@ export class FloatingOverlay {
     needsSetup?: boolean;
   }): void {
     this.root.innerHTML = '';
+    this.previewEl = null;
+    this.statusLabelEl = null;
     const card = document.createElement('div');
     card.className = 'sp-card';
     card.setAttribute('data-testid', 'slashprompt-card');
@@ -503,14 +559,20 @@ export class FloatingOverlay {
         dot.className = 'sp-dot';
         const statusLabel = document.createElement('span');
         statusLabel.textContent = opts.statusText;
+        this.statusLabelEl = statusLabel;
         status.append(dot, statusLabel);
         body.appendChild(status);
       }
 
-      const preview = document.createElement('div');
+      const preview = document.createElement('textarea');
       preview.className = 'sp-preview';
       preview.setAttribute('data-testid', 'slashprompt-preview');
-      preview.textContent = this.resultText || '…';
+      preview.readOnly = this.isStreaming;
+      preview.value = this.resultText || '…';
+      preview.addEventListener('input', () => {
+        this.resultText = preview.value;
+      });
+      this.previewEl = preview;
       body.appendChild(preview);
       preview.scrollTop = preview.scrollHeight;
     }
@@ -525,7 +587,9 @@ export class FloatingOverlay {
       const refines: Array<{ label: string; mode: AiMode; style: EnhanceStyle }> = [
         { label: 'Shorter', mode: 'rewrite-concise', style: 'concise' },
         { label: 'Formal', mode: 'rewrite-formal', style: this.currentStyle },
+        { label: 'Step-by-Step', mode: 'enhance', style: 'step-by-step' },
         { label: 'Coding', mode: 'enhance', style: 'coding' },
+        { label: 'Clarify', mode: 'enhance', style: 'clarify' },
         { label: '↻ Retry', mode: this.currentMode, style: this.currentStyle },
       ];
 
@@ -554,8 +618,9 @@ export class FloatingOverlay {
     copyBtn.disabled = !this.resultText;
     copyBtn.addEventListener('mousedown', async (e) => {
       e.preventDefault();
-      if (!this.resultText) return;
-      await navigator.clipboard.writeText(this.resultText);
+      const text = this.getResultText();
+      if (!text) return;
+      await navigator.clipboard.writeText(text);
       copyBtn.textContent = 'Copied ✓';
       setTimeout(() => {
         copyBtn.textContent = 'Copy';
@@ -570,8 +635,9 @@ export class FloatingOverlay {
     replaceBtn.innerHTML = `Replace <span class="sp-kbd">↵</span>`;
     replaceBtn.addEventListener('mousedown', (e) => {
       e.preventDefault();
-      if (!this.isStreaming && this.resultText) {
-        this.callbacks.onReplace(this.resultText);
+      const text = this.getResultText();
+      if (!this.isStreaming && text) {
+        this.callbacks.onReplace(text);
       }
     });
 

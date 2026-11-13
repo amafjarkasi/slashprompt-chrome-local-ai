@@ -8,9 +8,22 @@ export type AiMode =
 
 export type EnhanceStyle =
   | 'structured'
-  | 'concise'
   | 'coding'
+  | 'step-by-step'
+  | 'few-shot'
+  | 'clarify'
+  | 'concise'
   | 'creative';
+
+export const ENHANCE_STYLES: ReadonlyArray<{ value: EnhanceStyle; label: string }> = [
+  { value: 'structured', label: 'Structured' },
+  { value: 'coding', label: 'Coding' },
+  { value: 'step-by-step', label: 'Step-by-Step' },
+  { value: 'few-shot', label: 'Few-Shot' },
+  { value: 'clarify', label: 'Clarify First' },
+  { value: 'concise', label: 'Concise' },
+  { value: 'creative', label: 'Creative' },
+];
 
 export type ApiAvailability =
   | 'available'

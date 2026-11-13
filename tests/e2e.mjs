@@ -87,6 +87,10 @@ try {
   await pill.waitFor({ state: 'visible', timeout: 5000 });
   console.log('✓ Floating pill appeared on // in <textarea>');
 
+  // Verify inline style selector (e.g. step-by-step)
+  const styleSelect = page.locator('#slashprompt-overlay-host >> [data-testid="slashprompt-style-select"]');
+  await styleSelect.selectOption('step-by-step');
+
   await page.locator('#slashprompt-overlay-host >> [data-testid="slashprompt-enhance-btn"]').click();
 
   const replaceBtn = page.locator('#slashprompt-overlay-host >> [data-testid="slashprompt-replace-btn"]');
@@ -100,8 +104,8 @@ try {
   await replaceBtn.click();
   const taVal = await ta.inputValue();
   assert.ok(!taVal.startsWith('//'), 'Original // prefix should be replaced');
-  assert.ok(taVal.length > 30, 'Textarea should contain enhanced prompt');
-  console.log('✓ <textarea> replaced with enhanced prompt');
+  assert.ok(taVal.includes('step-by-step'), 'Textarea should reflect selected step-by-step style');
+  console.log('✓ <textarea> replaced with step-by-step enhanced prompt');
 
   // 3. Test inline // enhancement on contenteditable with Ctrl+Enter shortcut
   const ce = page.locator('#ce');
