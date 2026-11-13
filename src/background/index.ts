@@ -63,7 +63,19 @@ chrome.runtime.onConnect.addListener((port) => {
 
     try {
       const settings = await getSettings();
-      const { text, usedDemoFallback } = await runLocalAiTask(
+      let screenshotDataUrl: string | undefined;
+      if (msg.includeScreenshot && port.sender?.tab?.windowId !== undefined) {
+        try {
+          screenshotDataUrl = await chrome.tabs.captureVisibleTab(
+            port.sender.tab.windowId,
+            { format: 'jpeg', quality: 75 }
+          );
+        } catch {
+          // Ignore if tab cannot be captured (e.g. restricted URL)
+        }
+      }
+
+      const { text, usedDemoFallback, meta } = await runLocalAiTask(
         msg.prompt,
         msg.mode,
         msg.style,
@@ -76,7 +88,12 @@ chrome.runtime.onConnect.addListener((port) => {
             safePost({ type: 'DOWNLOAD_PROGRESS', progress });
           },
         },
-        settings.demoFallback
+        settings.demoFallback,
+        {
+          pageContext: msg.pageContext,
+          screenshotDataUrl,
+          translateToEnglish: msg.translateToEnglish,
+        }
       );
 
       await addHistoryItem({
@@ -86,7 +103,7 @@ chrome.runtime.onConnect.addListener((port) => {
         style: msg.style,
       });
 
-      safePost({ type: 'DONE', fullText: text, usedDemoFallback });
+      safePost({ type: 'DONE', fullText: text, usedDemoFallback, meta });
     } catch (err) {
       if ((err as Error)?.name === 'AbortError') return;
       const isUnavailable = err instanceof AiUnavailableError;

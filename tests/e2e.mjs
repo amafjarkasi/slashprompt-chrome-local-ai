@@ -59,7 +59,7 @@ try {
 
   await popupPage.click('[data-tab="settings"]');
   const statusCards = await popupPage.locator('.status-card').count();
-  assert.equal(statusCards, 5, 'Should display all 5 Chrome Built-in AI API status cards');
+  assert.equal(statusCards, 8, 'Should display all 8 Chrome Built-in AI API status cards');
 
   await popupPage.check('#setting-demo');
   await popupPage.click('[data-tab="playground"]');
@@ -87,9 +87,10 @@ try {
   await pill.waitFor({ state: 'visible', timeout: 5000 });
   console.log('✓ Floating pill appeared on // in <textarea>');
 
-  // Verify inline style selector (e.g. step-by-step)
+  // Verify inline style selector (e.g. step-by-step) and Page Context toggle
   const styleSelect = page.locator('#slashprompt-overlay-host >> [data-testid="slashprompt-style-select"]');
   await styleSelect.selectOption('step-by-step');
+  await page.locator('#slashprompt-overlay-host >> [data-testid="slashprompt-ctx-btn"]').click();
 
   await page.locator('#slashprompt-overlay-host >> [data-testid="slashprompt-enhance-btn"]').click();
 
@@ -101,11 +102,15 @@ try {
     return btn && !btn.disabled;
   });
 
+  const metaText = await page.locator('#slashprompt-overlay-host >> [data-testid="slashprompt-meta-row"]').textContent();
+  assert.ok(metaText?.includes('Clarity'), 'Should render Clarity score metadata');
+
   await replaceBtn.click();
   const taVal = await ta.inputValue();
   assert.ok(!taVal.startsWith('//'), 'Original // prefix should be replaced');
   assert.ok(taVal.includes('step-by-step'), 'Textarea should reflect selected step-by-step style');
-  console.log('✓ <textarea> replaced with step-by-step enhanced prompt');
+  assert.ok(taVal.includes('SlashPrompt E2E Test'), 'Textarea should include page context title');
+  console.log('✓ <textarea> replaced with step-by-step + page-context enhanced prompt');
 
   // 3. Test inline // enhancement on contenteditable with Ctrl+Enter shortcut
   const ce = page.locator('#ce');

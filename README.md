@@ -54,12 +54,21 @@ Type `//` followed by a rough thought in any text box, pick a mode or style, and
 
 > **Automatic Fallback:** If only the **Prompt API** (`LanguageModel`) is enabled in your Chrome build, `Concise`, `Formal`, `Expand`, `Proofread`, and `Summarize` automatically route through `LanguageModel` with task-specific instructions.
 
-### 3. Toolbar Popup & Local History
+### 3. Advanced On-Device Chrome AI Capabilities
+
+- **Warm Session Caching (`session.clone()`):** Caches base `LanguageModel` sessions per style and clones them per request to avoid re-parsing system prompts.
+- **Structured Prompt Linting (`responseConstraint`):** Uses a JSON Schema constraint to score prompt clarity (`1–10`) and surface 1-click missing-element chips (e.g. `+ Output Format`, `+ Target Audience`).
+- **Context-Window Guardrails (`measureInputUsage()` + `inputQuota`):** Automatically pre-condenses oversized inputs via the **`Summarizer`** API before enhancing, preventing `QuotaExceededError`.
+- **Multimodal Screenshot-to-Prompt (`📷`):** Toggle **📷** in the floating pill to attach a visible-tab screenshot (`chrome.tabs.captureVisibleTab`) using `expectedInputs: [{ type: 'image' }]`.
+- **Page-Aware Local Context (`📄 Page`):** Toggle **📄 Page** to include the active page title, hostname, and highlighted text as local `sharedContext`.
+- **Auto Language Detection & Translation (`LanguageDetector` + `Translator`):** Detects non-English `//` prompts and offers a 1-click **Translate → EN & Enhance** chip.
+
+### 4. Toolbar Popup & Local History
 
 Click the **SlashPrompt** extension icon anytime to access:
-- **Enhance Playground:** Test and refine prompts without leaving your current tab.
+- **Enhance Playground:** Test and refine prompts without leaving your current tab (`Ctrl+Enter` to run).
 - **Local History:** Last 30 enhanced prompts stored strictly in `chrome.storage.local` with **★ starring** and 1-click copy.
-- **AI & Settings:** Live availability pills (`available`, `downloadable`, `unavailable`) for all 5 Chrome Built-in AI APIs, custom trigger prefix (default `//`), default style, and **Offline Demo Fallback**.
+- **AI & Settings:** Live availability pills (`available`, `downloadable`, `unavailable`) for all 8 Chrome Built-in AI capabilities, custom trigger prefix (default `//`), default style, and **Offline Demo Fallback**.
 
 ---
 

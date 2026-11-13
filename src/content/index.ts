@@ -2,9 +2,7 @@ import { getSettings } from '../shared/storage.js';
 import type { TriggerMatch } from '../shared/trigger.js';
 import {
   DEFAULT_SETTINGS,
-  type AiMode,
   type EnhanceRequest,
-  type EnhanceStyle,
   type ExtensionSettings,
   type StreamPortMessage,
 } from '../shared/types.js';
@@ -15,7 +13,7 @@ import {
   replaceTargetRange,
   type EditableElement,
 } from './domTarget.js';
-import { FloatingOverlay } from './overlay.js';
+import { FloatingOverlay, type OverlayEnhanceOpts } from './overlay.js';
 
 let settings: ExtensionSettings = { ...DEFAULT_SETTINGS };
 let activeTarget: EditableElement | null = null;
@@ -24,7 +22,7 @@ let activePort: chrome.runtime.Port | null = null;
 
 const overlay = new FloatingOverlay(
   {
-    onEnhance: (mode, style) => startEnhancement(mode, style),
+    onEnhance: (opts) => startEnhancement(opts),
     onReplace: (text) => applyReplacement(text),
     onDismiss: () => dismiss(),
     onCancel: () => cancelStream(),
@@ -68,12 +66,12 @@ function dismiss() {
   activeMatch = null;
 }
 
-function startEnhancement(mode: AiMode, style: EnhanceStyle) {
+function startEnhancement(opts: OverlayEnhanceOpts) {
   if (!activeTarget || !activeMatch) return;
   cancelStream();
 
   const rect = getTargetAnchorRect(activeTarget);
-  overlay.showCardLoading(rect, mode, style);
+  overlay.showCardLoading(rect, opts.mode, opts.style);
 
   const port = chrome.runtime.connect({ name: 'slashprompt-stream' });
   activePort = port;
@@ -85,7 +83,7 @@ function startEnhancement(mode: AiMode, style: EnhanceStyle) {
     } else if (msg.type === 'CHUNK') {
       overlay.updateStream(msg.fullText);
     } else if (msg.type === 'DONE') {
-      overlay.finishStream(msg.fullText, msg.usedDemoFallback);
+      overlay.finishStream(msg.fullText, msg.usedDemoFallback, msg.meta);
       activePort = null;
       try {
         port.disconnect();
@@ -109,11 +107,21 @@ function startEnhancement(mode: AiMode, style: EnhanceStyle) {
     }
   });
 
+  const selection = window.getSelection()?.toString().trim().slice(0, 800);
   const payload: EnhanceRequest = {
     type: 'ENHANCE_PROMPT',
     prompt: activeMatch.query,
-    mode,
-    style,
+    mode: opts.mode,
+    style: opts.style,
+    includeScreenshot: opts.includeScreenshot,
+    translateToEnglish: opts.translateToEnglish,
+    pageContext: opts.includePageContext
+      ? {
+          title: document.title,
+          host: location.hostname,
+          selection: selection || undefined,
+        }
+      : undefined,
   };
   port.postMessage(payload);
 }
@@ -189,7 +197,7 @@ document.addEventListener(
       if (isTriggerShortcut) {
         e.preventDefault();
         e.stopPropagation();
-        startEnhancement(overlay.getCurrentMode(), overlay.getCurrentStyle());
+        startEnhancement(overlay.getEnhanceOpts());
         return;
       }
     }
@@ -246,7 +254,12 @@ chrome.runtime.onMessage.addListener((msg) => {
         activeMatch = { start, end, query: selectionText };
       }
       if (activeMatch) {
-        startEnhancement('enhance', settings.defaultStyle);
+        startEnhancement({
+          mode: 'enhance',
+          style: settings.defaultStyle,
+          includePageContext: false,
+          includeScreenshot: false,
+        });
       }
     }
   }

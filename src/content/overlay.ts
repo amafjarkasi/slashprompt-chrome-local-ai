@@ -1,7 +1,20 @@
-import { ENHANCE_STYLES, type AiMode, type EnhanceStyle } from '../shared/types.js';
+import {
+  ENHANCE_STYLES,
+  type AiMode,
+  type EnhanceStyle,
+  type PromptLintMeta,
+} from '../shared/types.js';
+
+export interface OverlayEnhanceOpts {
+  mode: AiMode;
+  style: EnhanceStyle;
+  includePageContext: boolean;
+  includeScreenshot: boolean;
+  translateToEnglish?: boolean;
+}
 
 export interface OverlayCallbacks {
-  onEnhance: (mode: AiMode, style: EnhanceStyle) => void;
+  onEnhance: (opts: OverlayEnhanceOpts) => void;
   onReplace: (text: string) => void;
   onDismiss: () => void;
   onCancel: () => void;
@@ -263,6 +276,38 @@ const STYLES = `
   background: var(--chip-hover);
 }
 
+.sp-toggle {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  border-radius: 999px;
+  padding: 4px 8px;
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.sp-toggle[aria-pressed="true"] {
+  background: var(--accent);
+  color: var(--accent-text);
+  border-color: transparent;
+}
+
+.sp-meta-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  padding: 0 12px 8px;
+}
+
+.sp-score {
+  font-size: 10.5px;
+  font-weight: 600;
+  color: #10b981;
+  background: rgba(16, 185, 129, 0.14);
+  padding: 2px 7px;
+  border-radius: 999px;
+}
+
 .sp-footer {
   display: flex;
   align-items: center;
@@ -285,6 +330,9 @@ export class FloatingOverlay {
   private callbacks: OverlayCallbacks;
   private currentMode: AiMode = 'enhance';
   private currentStyle: EnhanceStyle = 'structured';
+  private includePageContext = false;
+  private includeScreenshot = false;
+  private lastMeta: PromptLintMeta | undefined;
   private viewState: 'hidden' | 'pill' | 'card' = 'hidden';
   private resultText = '';
   private isStreaming = false;
@@ -325,6 +373,15 @@ export class FloatingOverlay {
     return this.currentStyle;
   }
 
+  public getEnhanceOpts(): OverlayEnhanceOpts {
+    return {
+      mode: this.currentMode,
+      style: this.currentStyle,
+      includePageContext: this.includePageContext,
+      includeScreenshot: this.includeScreenshot,
+    };
+  }
+
   public isVisible(): boolean {
     return this.viewState !== 'hidden';
   }
@@ -341,18 +398,19 @@ export class FloatingOverlay {
     this.viewState = 'pill';
     this.mount();
     this.renderPill();
-    this.positionNear(rect, 390, 42);
+    this.positionNear(rect, 470, 44);
   }
 
   public showCardLoading(rect: DOMRect, mode: AiMode, style: EnhanceStyle): void {
     this.currentMode = mode;
     this.currentStyle = style;
+    this.lastMeta = undefined;
     this.viewState = 'card';
     this.isStreaming = true;
     this.resultText = '';
     this.mount();
     this.renderCard({ statusText: 'Enhancing locally with Gemini Nano...' });
-    this.positionNear(rect, 390, 270);
+    this.positionNear(rect, 400, 290);
   }
 
   public updateDownloadProgress(progress: number): void {
@@ -373,10 +431,15 @@ export class FloatingOverlay {
     }
   }
 
-  public finishStream(fullText: string, usedDemoFallback = false): void {
+  public finishStream(
+    fullText: string,
+    usedDemoFallback = false,
+    meta?: PromptLintMeta
+  ): void {
     if (this.viewState !== 'card') return;
     this.isStreaming = false;
     this.resultText = fullText;
+    this.lastMeta = meta;
     this.renderCard({
       badge: usedDemoFallback ? 'Demo Mode' : 'On-Device AI',
     });
@@ -470,6 +533,34 @@ export class FloatingOverlay {
     });
     styleSelect.addEventListener('mousedown', (e) => e.stopPropagation());
 
+    const ctxBtn = document.createElement('button');
+    ctxBtn.type = 'button';
+    ctxBtn.className = 'sp-toggle';
+    ctxBtn.setAttribute('data-testid', 'slashprompt-ctx-btn');
+    ctxBtn.setAttribute('aria-pressed', String(this.includePageContext));
+    ctxBtn.title = 'Include current page title & selected text';
+    ctxBtn.textContent = '📄 Page';
+    ctxBtn.addEventListener('mousedown', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      this.includePageContext = !this.includePageContext;
+      ctxBtn.setAttribute('aria-pressed', String(this.includePageContext));
+    });
+
+    const shotBtn = document.createElement('button');
+    shotBtn.type = 'button';
+    shotBtn.className = 'sp-toggle';
+    shotBtn.setAttribute('data-testid', 'slashprompt-shot-btn');
+    shotBtn.setAttribute('aria-pressed', String(this.includeScreenshot));
+    shotBtn.title = 'Attach visible tab screenshot (Multimodal)';
+    shotBtn.textContent = '📷';
+    shotBtn.addEventListener('mousedown', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      this.includeScreenshot = !this.includeScreenshot;
+      shotBtn.setAttribute('aria-pressed', String(this.includeScreenshot));
+    });
+
     const enhanceBtn = document.createElement('button');
     enhanceBtn.type = 'button';
     enhanceBtn.className = 'sp-btn-primary';
@@ -478,7 +569,7 @@ export class FloatingOverlay {
     enhanceBtn.addEventListener('mousedown', (e) => {
       e.preventDefault();
       e.stopPropagation();
-      this.callbacks.onEnhance(this.currentMode, this.currentStyle);
+      this.callbacks.onEnhance(this.getEnhanceOpts());
     });
 
     const closeBtn = document.createElement('button');
@@ -492,7 +583,7 @@ export class FloatingOverlay {
       this.callbacks.onDismiss();
     });
 
-    pill.append(label, modeSelect, styleSelect, enhanceBtn, closeBtn);
+    pill.append(label, modeSelect, styleSelect, ctxBtn, shotBtn, enhanceBtn, closeBtn);
     this.root.appendChild(pill);
   }
 
@@ -579,6 +670,65 @@ export class FloatingOverlay {
 
     card.appendChild(body);
 
+    // Metadata badges (Clarity score, Pre-condensed, Screenshot, Missing hints, Translate)
+    if (!this.isStreaming && !opts.error && this.resultText && this.lastMeta) {
+      const metaRow = document.createElement('div');
+      metaRow.className = 'sp-meta-row';
+      metaRow.setAttribute('data-testid', 'slashprompt-meta-row');
+
+      const scoreBadge = document.createElement('span');
+      scoreBadge.className = 'sp-score';
+      scoreBadge.textContent = `Clarity ${this.lastMeta.score}/10`;
+      metaRow.appendChild(scoreBadge);
+
+      if (this.lastMeta.preCondensed) {
+        const b = document.createElement('span');
+        b.className = 'sp-badge';
+        b.textContent = 'Auto-condensed';
+        metaRow.appendChild(b);
+      }
+
+      if (this.lastMeta.usedScreenshot) {
+        const b = document.createElement('span');
+        b.className = 'sp-badge';
+        b.textContent = '📷 Screenshot';
+        metaRow.appendChild(b);
+      }
+
+      if (this.lastMeta.detectedLanguage && this.lastMeta.detectedLanguage !== 'en') {
+        const trBtn = document.createElement('button');
+        trBtn.type = 'button';
+        trBtn.className = 'sp-chip';
+        trBtn.textContent = `🌐 Translate (${this.lastMeta.detectedLanguage}) → EN`;
+        trBtn.addEventListener('mousedown', (e) => {
+          e.preventDefault();
+          this.callbacks.onEnhance({
+            ...this.getEnhanceOpts(),
+            translateToEnglish: true,
+          });
+        });
+        metaRow.appendChild(trBtn);
+      }
+
+      for (const hint of this.lastMeta.missing) {
+        const addBtn = document.createElement('button');
+        addBtn.type = 'button';
+        addBtn.className = 'sp-chip';
+        addBtn.textContent = `+ ${hint}`;
+        addBtn.addEventListener('mousedown', (e) => {
+          e.preventDefault();
+          if (this.previewEl) {
+            this.previewEl.value = `${this.previewEl.value.trim()}\n${hint}: <specify here>`;
+            this.resultText = this.previewEl.value;
+            addBtn.remove();
+          }
+        });
+        metaRow.appendChild(addBtn);
+      }
+
+      card.appendChild(metaRow);
+    }
+
     // Quick refine chips (when finished and no error)
     if (!this.isStreaming && !opts.error && this.resultText) {
       const chips = document.createElement('div');
@@ -600,7 +750,11 @@ export class FloatingOverlay {
         chip.textContent = r.label;
         chip.addEventListener('mousedown', (e) => {
           e.preventDefault();
-          this.callbacks.onEnhance(r.mode, r.style);
+          this.callbacks.onEnhance({
+            ...this.getEnhanceOpts(),
+            mode: r.mode,
+            style: r.style,
+          });
         });
         chips.appendChild(chip);
       }

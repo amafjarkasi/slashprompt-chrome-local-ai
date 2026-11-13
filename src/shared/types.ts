@@ -37,6 +37,9 @@ export interface AiCapabilitiesStatus {
   writer: ApiAvailability;
   summarizer: ApiAvailability;
   proofreader: ApiAvailability;
+  languageDetector: ApiAvailability;
+  translator: ApiAvailability;
+  multimodal: ApiAvailability;
 }
 
 export interface ExtensionSettings {
@@ -63,15 +66,32 @@ export interface PromptHistoryItem {
   starred?: boolean;
 }
 
+export interface PageContextInfo {
+  title: string;
+  host: string;
+  selection?: string;
+}
+
+export interface PromptLintMeta {
+  score: number;
+  missing: string[];
+  detectedLanguage?: string;
+  preCondensed?: boolean;
+  usedScreenshot?: boolean;
+}
+
 export interface EnhanceRequest {
   type: 'ENHANCE_PROMPT';
   prompt: string;
   mode: AiMode;
   style: EnhanceStyle;
+  pageContext?: PageContextInfo;
+  includeScreenshot?: boolean;
+  translateToEnglish?: boolean;
 }
 
 export type StreamPortMessage =
   | { type: 'CHUNK'; text: string; fullText: string }
   | { type: 'DOWNLOAD_PROGRESS'; progress: number }
-  | { type: 'DONE'; fullText: string; usedDemoFallback?: boolean }
+  | { type: 'DONE'; fullText: string; usedDemoFallback?: boolean; meta?: PromptLintMeta }
   | { type: 'ERROR'; error: string; needsSetup?: boolean };

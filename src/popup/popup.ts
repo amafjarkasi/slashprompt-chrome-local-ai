@@ -195,6 +195,9 @@ async function renderCapabilities() {
     ['Writer API', caps.writer],
     ['Summarizer API', caps.summarizer],
     ['Proofreader API', caps.proofreader],
+    ['LanguageDetector', caps.languageDetector],
+    ['Translator API', caps.translator],
+    ['Multimodal (Img)', caps.multimodal],
   ];
 
   statusGrid.innerHTML = '';
